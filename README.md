@@ -1,11 +1,1 @@
-# bomberman_rl
-Setup for a project/competition amongst students to train a winning Reinforcement Learning agent for the classic game Bomberman.
-
-# agent_010_shred
-
-Please see the details about agent_010_shred in its [README.md](https://github.com/cs224/bomberman_rl/blob/master/agent_code/agent_010_shred).
-
-# agent_011_shred
-
-Please see the details about agent_011_shred in its [README.md](https://github.com/cs224/bomberman_rl/blob/master/agent_code/agent_011_shred).
-
+	In this study, we explore reinforcement learning application to develop autonomous agents capable of strategic decisions in a complex environment. This project investigates the application of multiple algorithms such as Deep Q-Networks, Proximal Policy Optimization and Self-Adaptive Evolution Strategies to the multi-agent Bomberman game environment. We explore the agents' ability to develop strategies in a grid-based and adversarial environment with sparse rewards. We focus on the balance between exploration and exploitation and the capacity to generate adaptive behaviors in a complex scenario. Through experimental analysis, we provide empirical insights into the performance, limitations and learning capabilities of various techniques in this multi-agent environment.
