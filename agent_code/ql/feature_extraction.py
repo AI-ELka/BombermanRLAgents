@@ -1,4 +1,4 @@
-from agent_code.atom.utils import *
+from agent_code.ql.utils import *
 
 FEATURE_VECTOR_SIZE=20
 

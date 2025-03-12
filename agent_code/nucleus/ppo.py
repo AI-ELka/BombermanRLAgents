@@ -5,8 +5,8 @@ import torch
 import numpy as np
 
 from settings import INPUT_MAP
-from agent_code.echo.actor_critic import ActorCriticLSTM, ActorCriticMLP
-from agent_code.echo.utils import ACTIONS
+from agent_code.nucleus.actor_critic import ActorCriticLSTM, ActorCriticMLP
+from agent_code.nucleus.utils import ACTIONS
 
 
 # Hyperparameter

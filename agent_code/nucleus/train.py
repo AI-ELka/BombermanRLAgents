@@ -11,9 +11,9 @@ import numpy as np
 import torch
 
 import events as e
-import agent_code.echo.own_events as own_e
-from agent_code.echo.feature_extraction import state_to_small_features_ppo, state_to_large_features
-from agent_code.echo.add_own_events import add_own_events_ppo, add_own_events_q_learning, GAME_REWARDS
+import agent_code.nucleus.own_events as own_e
+from agent_code.nucleus.feature_extraction import state_to_small_features_ppo, state_to_large_features
+from agent_code.nucleus.add_own_events import add_own_events_ppo, add_own_events_q_learning, GAME_REWARDS
 
 
 # Hyper parameters:
