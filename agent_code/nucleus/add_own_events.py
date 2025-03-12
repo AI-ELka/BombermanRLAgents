@@ -18,7 +18,7 @@ GAME_REWARDS = {
         own_e.CLOSER_TO_CRATE: 0.04,
         own_e.AWAY_FROM_CRATE: -0.02,
         own_e.WAITED_NECESSARILY: 0.1,
-        own_e.WAITED_UNNECESSARILY: -4,
+        own_e.WAITED_UNNECESSARILY: -10,
         own_e.CLOSER_TO_PLAYERS: 0.08,
         own_e.AWAY_FROM_PLAYERS: -0.06, 
         own_e.SMART_BOMB_DROPPED: 0.5,

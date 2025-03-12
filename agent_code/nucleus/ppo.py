@@ -1,4 +1,5 @@
 import os
+import csv
 import time
 
 import torch
@@ -215,9 +216,9 @@ class PPOAgent:
             if idx_action<=4:
                 if feature_vector[0]==1 or feature_vector[1]==1 or feature_vector[2]==1 or feature_vector[3]==1 or feature_vector[4]==1:
                     if feature_vector[idx_action]==1:
-                        self.temp_reward = 3
+                        self.temp_reward = 1
                     else:
-                        self.temp_reward = -3
+                        self.temp_reward = -1
                 
 
         return ACTIONS[idx_action]
@@ -266,6 +267,29 @@ class PPOAgent:
             if self.n_updates == 10:
                 print(' Total rewards of {}, Loss: {}'.format(
                     self.round_rewards/self.n_updates, self.loss_sum/self.n_updates))
+                # Check if the file exists to write headers only once
+                file_exists = os.path.isfile(self.csv_file)
+
+                # Extract directory from the file path
+                csv_dir = os.path.dirname(self.csv_file)
+                if not os.path.exists(csv_dir):
+                    # Create the directory if it doesn't exist
+                    os.makedirs(csv_dir, exist_ok=True)
+
+
+                # Open the file in append mode
+                with open(self.csv_file, mode='a', newline='') as file:
+                    writer = csv.writer(file)
+                    
+                    # Write the header if the file is new
+                    if not file_exists:
+                        writer.writerow(["reward", "loss"])
+                    
+                    # Append the new reward and loss values
+                    writer.writerow([
+                        self.round_rewards / self.n_updates, 
+                        self.loss_sum.item() / self.n_updates
+                    ])
                 print('Time spent for each training update:')
                 print(f'Feature Extraction: {self.time_feature_extraction/self.n_updates}')
                 print(f'Add own Events: {self.time_own_events/self.n_updates}')

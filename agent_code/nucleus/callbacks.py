@@ -16,6 +16,7 @@ Author: Luke Voss
 from collections import deque
 
 import torch
+import os
 
 from agent_code.nucleus.ppo import PPOAgent
 from agent_code.nucleus.feature_extraction import state_to_small_features_ppo, state_to_large_features, FEATURE_VECTOR_SIZE
@@ -39,7 +40,7 @@ def setup(self):
     self.MAX_COORD_HISTORY = 7
     HIDDEN_SIZE = 512
     NETWORK_TYPE = 'MLP'
-    PRETRAINED_MODEL = None#"echo.pt"
+    PRETRAINED_MODEL = "echo.pt"
     self.MODEL_NAME = "echo"
     self.SAVE_ROUNDS = []
 
@@ -56,11 +57,15 @@ def setup(self):
     # Agent Position history before normalization
     self.agent_coord_history = deque([], self.MAX_COORD_HISTORY)
 
+    if not os.path.exists("models/"+PRETRAINED_MODEL):
+        PRETRAINED_MODEL = None
     self.agent = PPOAgent(pretrained_model=PRETRAINED_MODEL,
                         input_feature_size=FEATURE_VECTOR_SIZE,
                         hidden_size=HIDDEN_SIZE,
                         network_type=NETWORK_TYPE,
                         device=self.device)
+    
+    self.agent.csv_file = "csv/"+self.MODEL_NAME+".csv"
 
 
 def reset_self(self, game_state: dict):
