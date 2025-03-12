@@ -71,6 +71,30 @@ def compute_gae(next_value, rewards, masks, values, gamma=0.99, tau=0.95):
         returns.insert(0, gae + values[step])
     return returns
 
+# Function to get the last index from the CSV
+def get_last_index(csv_file):
+    """
+    Get the last index from the CSV file
+
+        Parameter:
+            csv_file (str): path to the CSV file
+
+        Return:
+            int: the last index in the CSV file
+    """
+    try:
+        with open(csv_file, "r") as file:
+            reader = csv.reader(file)
+            next(reader)  # Skip header
+            last_row = None
+            for row in reader:
+                last_row = row
+            if last_row:
+                return int(last_row[0]) + 1  # Continue from last index
+    except (FileNotFoundError, IndexError, ValueError):
+        pass
+    return 0  # Start from 0 if file is empty or missing
+
 
 class PPOAgent:
     def __init__(self, pretrained_model=None, input_feature_size = 27, hidden_size=256, network_type='LSTM', device='cuda', train=True):
@@ -92,6 +116,8 @@ class PPOAgent:
         self.time_feature_extraction = 0
         self.time_own_events = 0
         self.time_training_step = 0
+
+        self.log_index = -1
 
         self.train = train
 
@@ -283,13 +309,19 @@ class PPOAgent:
                     
                     # Write the header if the file is new
                     if not file_exists:
-                        writer.writerow(["reward", "loss"])
+                        writer.writerow(["index", "reward", "loss"])
+                        self.log_index = 0
+                    else:
+                        if self.log_index == -1:
+                            self.log_index = get_last_index(self.csv_file)
                     
                     # Append the new reward and loss values
                     writer.writerow([
+                        self.log_index,
                         self.round_rewards / self.n_updates, 
                         self.loss_sum.item() / self.n_updates
                     ])
+                    self.log_index += 1
                 print('Time spent for each training update:')
                 print(f'Feature Extraction: {self.time_feature_extraction/self.n_updates}')
                 print(f'Add own Events: {self.time_own_events/self.n_updates}')

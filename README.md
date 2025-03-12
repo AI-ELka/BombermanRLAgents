@@ -45,10 +45,7 @@ The **Bomberman environment** is a **grid-based game** where agents navigate a m
 
 ### Setting Up the Environment
 1. Clone the repository:
-   ```bash
-   git clone <repo-url>
-   cd <repo-folder>
-   ```
+
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
@@ -57,13 +54,17 @@ The **Bomberman environment** is a **grid-based game** where agents navigate a m
 ### Running an Agent
 To run **Nucleus**:
 ```bash
-python main.py --agent nucleus
+python main.py --agent nucleus <other-agents>
 ```
 
 To run **QL_Agent**:
 ```bash
-python main.py --agent ql_agent
+python main.py --agent ql_agent <other-agents>
 ```
+
+To train, add a `--train <idx-up-to-which-you-train> --n-rounds <n-rounds>`
+
+To train without GUI, add a `--no-gui`
 
 ## Future Improvements
 - 🧠 Improve **Nucleus** training to better escape bomb traps.

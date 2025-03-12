@@ -59,6 +59,9 @@ def setup(self):
 
     if not os.path.exists("models/"+PRETRAINED_MODEL):
         PRETRAINED_MODEL = None
+        self.logger.info("No pretrained model found. Training from scratch.")
+    else:
+        self.logger.info(f"Using pretrained model {PRETRAINED_MODEL}")
     self.agent = PPOAgent(pretrained_model=PRETRAINED_MODEL,
                         input_feature_size=FEATURE_VECTOR_SIZE,
                         hidden_size=HIDDEN_SIZE,
