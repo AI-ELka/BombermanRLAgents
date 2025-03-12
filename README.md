@@ -1,6 +1,6 @@
 <div align="center">
 
-# Reinforcement Learning for Bomberman SS2024
+# Bomberman Reinforcement Learning
 
 </div>
 <div align="center">
@@ -8,44 +8,70 @@
 </div>
 
 A project for the course:  
-*Machine Learning Essentials*
+*Reinforcement learning and autonomous agents*  
 
 ---
 
+## Introduction
+This project explores **Reinforcement Learning (RL)** techniques in the **Bomberman** environment. Our primary goal is to develop an intelligent agent capable of strategic decision-making, optimizing movement, bomb placement, and opponent avoidance.
 
+## Agents Implemented
 
-## Project Overview
+### 🔹 Nucleus (PPO-Based Agent)
+- **Algorithm:** Proximal Policy Optimization (PPO)
+- **Status:** Currently being optimized
+- **Location:** `agent_code/nucleus`
+- **Description:** Nucleus leverages PPO for policy learning. However, performance is still being refined to mitigate suboptimal behaviors like staying idle or failing to escape bomb blasts.
 
-This project focuses on developing reinforcement learning agents for the Bomberman environment. The goal is to train an agent capable of strategic movement and decision-making to maximize its score.
-
-### 1. Nucleus
-
-**Framework:** Proximal Policy Optimization (PPO)  
-**Average Score:** Currently being optimized  
-**Location:** `agent_code/nucleus`
-
-The Nucleus agent is the primary reinforcement learning model used in this project. While it follows a reward-based learning strategy, its performance is still being refined to improve decision-making and avoid suboptimal behaviors like staying still or making unsafe moves.
-
-### 2. QL
-
-**Framework:** Q-Learning  
-**Average Score:** Stable performance  
-**Location:** `agent_code/qlt`
-
-The QL agent, utilizing Q-learning, provides a baseline reinforcement learning approach that performs consistently. It serves as a comparative model against Nucleus.
+### 🔹 QL_Agent (Q-Learning Baseline)
+- **Algorithm:** Q-Learning
+- **Status:** Stable performance
+- **Location:** `agent_code/ql_agent`
+- **Description:** QL_Agent serves as a comparative baseline, utilizing tabular Q-learning to make decisions based on a learned value function.
 
 ## Environment Overview
 
-The Bomberman environment used in this project is a grid-based game where agents navigate a map, place bombs, and attempt to eliminate opponents while avoiding self-destruction. Key elements include:
+The **Bomberman environment** is a **grid-based game** where agents navigate a map, place bombs, and attempt to maximize their score while avoiding self-destruction. Key mechanics include:
 
-- **Grid-Based Movement:** Agents move up, down, left, or right within a fixed game grid.
-- **Bomb Mechanics:** Bombs explode after a set time, affecting nearby tiles and potentially eliminating agents.
-- **Crates:** Some tiles contain crates that can be destroyed to clear paths.
-- **Coins:** Collecting coins contributes to an agent’s score.
-- **Opponent Interactions:** Agents must strategically avoid or target opponents for survival and higher scores.
+- 🏃 **Movement:** Agents can move in four cardinal directions within a structured grid.
+- 💣 **Bomb Placement & Explosions:** Bombs detonate after a timer, destroying adjacent tiles and eliminating nearby agents.
+- 📦 **Crates:** Breakable obstacles that clear paths when destroyed.
+- 💰 **Coins:** Collectible items that contribute to the agent's score.
+- ⚔️ **Opponent Interactions:** Agents must strategically evade or attack opponents to maximize survival chances.
 
-Unlike some Bomberman versions, **this environment does not include power-ups** that enhance agent capabilities. 
+❗ **Note:** Unlike some Bomberman versions, **this environment does not include power-ups** that enhance agent capabilities.
+
+## How to Run the Agents
+
+### Setting Up the Environment
+1. Clone the repository:
+   ```bash
+   git clone <repo-url>
+   cd <repo-folder>
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Running an Agent
+To run **Nucleus**:
+```bash
+python main.py --agent nucleus
+```
+
+To run **QL_Agent**:
+```bash
+python main.py --agent ql_agent
+```
+
+## Future Improvements
+- 🧠 Improve **Nucleus** training to better escape bomb traps.
+- 🏆 Optimize **reward structure** to incentivize proactive strategies.
+- 🎯 Experiment with **alternative RL algorithms** (e.g., SAC, A2C).
+- 🔄 Implement **self-play and curriculum learning** for better generalization.
 
 ---
-For more details or further inquiries, please refer to the GitHub repository.
+
+For further details, please check the GitHub repository. 🚀
 
