@@ -11,7 +11,7 @@ from agent_code.ql_l.add_own_events import add_own_events_q_learning, GAME_REWAR
 from agent_code.ql_l.q_learning import *
 
 # Hyper parameters:
-SAVE_EVERY_N_EPOCHS = 50
+SAVE_EVERY_N_EPOCHS = 100
 
 
 def setup_training(self):
