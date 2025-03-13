@@ -20,8 +20,6 @@ def state_to_features(game_state: dict) -> np.array:
 
         Return: 
             np.array of size 15x15x7
-
-    Author: Luke Voss
     """
     # Handle the case when the game_state is None
     if game_state is None:
@@ -74,8 +72,6 @@ def normalize_state(game_state):
         Returns: 
             action_map (func): function to map action in normalized state to action in input_state
             reverse_action_map (func): function to map action in input_state to action in normalized state.
-
-    Author: Luke Voss
     """
     if game_state is None:
         return lambda a: a, lambda a: a

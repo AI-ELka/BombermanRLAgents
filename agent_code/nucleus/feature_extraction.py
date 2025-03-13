@@ -58,8 +58,6 @@ def state_to_large_features(game_state: dict, max_opponents_score: int, num_coin
             - sometimes placing a bomb before running out of danger can trap a opponent between two bombs
             - search for many possible paths and give back more than one action idx (especially for safety!)
                 -> keep searching as long as distance is the same (Safety can search for more)
-
-    Author: Luke Voss
     """
     feature_vector = torch.zeros(30)
 
