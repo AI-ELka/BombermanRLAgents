@@ -15,6 +15,30 @@ A project for the course:
 ## Introduction
 This project explores **Reinforcement Learning (RL)** techniques in the **Bomberman** environment. Our primary goal is to develop an intelligent agent capable of strategic decision-making, optimizing movement, bomb placement, and opponent avoidance.
 
+## Environment Overview
+
+The **Bomberman environment** is a **grid-based game** where agents navigate a map, place bombs, and attempt to maximize their score while avoiding self-destruction. Key mechanics include:
+
+- 🏃 **Movement:** Agents can move in four cardinal directions within a structured grid.
+- 💣 **Bomb Placement & Explosions:** Bombs detonate after a timer, destroying adjacent tiles and eliminating nearby agents.
+- 📦 **Crates:** Breakable obstacles that clear paths when destroyed.
+- 💰 **Coins:** Collectible items that contribute to the agent's score.
+- ⚔️ **Opponent Interactions:** Agents must strategically evade or attack opponents to maximize survival chances.
+
+Each agent in the environment follows a predefined structure and must be placed within the `agent_code` folder. An agent must contain a `callbacks.py` file, which includes the following required functions:
+
+- **setup(self):** Initializes the agent and prepares it for gameplay.
+- **act(self, game_state: dict) -> str:** Determines the agent's next move based on the game state.
+
+For trainable agents, an additional `train.py` file is required, which should define the following functions:
+
+- **game_events_occurred(self, old_game_state, self_action, new_game_state, events):** Handles intermediate rewards and updates the learning model.
+- **end_of_round(self, last_game_state, last_action, events):** Processes final rewards and training updates at the end of each round.
+- **reward_from_events(self, events):** Computes the total reward from all game events.
+
+If a trainable agent does not include `train.py`, an exception will be raised.
+
+
 ## Agents Implemented
 
 ### 🔹 PPO-Based Agent
@@ -29,38 +53,17 @@ This project explores **Reinforcement Learning (RL)** techniques in the **Bomber
 - **Location:** `agent_code/ql`
 - **Description:** QL_Agent serves as a comparative baseline, utilizing tabular Q-learning to make decisions based on a learned value function.
 
-## Environment Overview
-
-The **Bomberman environment** is a **grid-based game** where agents navigate a map, place bombs, and attempt to maximize their score while avoiding self-destruction. Key mechanics include:
-
-- 🏃 **Movement:** Agents can move in four cardinal directions within a structured grid.
-- 💣 **Bomb Placement & Explosions:** Bombs detonate after a timer, destroying adjacent tiles and eliminating nearby agents.
-- 📦 **Crates:** Breakable obstacles that clear paths when destroyed.
-- 💰 **Coins:** Collectible items that contribute to the agent's score.
-- ⚔️ **Opponent Interactions:** Agents must strategically evade or attack opponents to maximize survival chances.
-
-❗ **Note:** Unlike some Bomberman versions, **this environment does not include power-ups** that enhance agent capabilities.
 
 ## How to Run the Agents
 
 ### Setting Up the Environment
 1. Clone the repository:
-
 2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
 
 ### Running an Agent
 To run **ppo**:
-```bash
-python main.py --agent ppo <other-agents>
-```
 
 To run **QL_Agent**:
-```bash
-python main.py --agent ql <other-agents>
-```
 
 To train, add a `--train <idx-up-to-which-you-train> --n-rounds <n-rounds>`
 
