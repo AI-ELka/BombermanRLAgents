@@ -180,7 +180,7 @@ class DeepQLearningAgent:
     max_value = q_values.max()
 
     # select any action with max Q-value
-    max_indices = (q_values == max_value).nonzero(as_tuple=True)[0]
+    max_indices = (q_values.squeeze(0) == max_value).nonzero(as_tuple=True)[0]
     action_idx = max_indices[torch.randint(0, max_indices.size(0), (1,))].item()
 
     return action_idx
