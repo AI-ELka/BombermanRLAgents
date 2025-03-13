@@ -8,8 +8,9 @@ in the classic setting with 3 rule based agents as opponents
 """
 from collections import deque
 
-from agent_code.ql.feature_extraction import state_to_small_features
-from agent_code.ql.q_learning import QLearningAgent
+import os
+from agent_code.ql_l.feature_extraction import state_to_large_features
+from agent_code.ql_l.q_learning import QLearningAgent
 
 
 
@@ -36,6 +37,11 @@ def setup(self):
     self.agent_coord_history = deque([], self.MAX_COORD_HISTORY)
 
     pretrained_model = self.MODEL_NAME
+    if pretrained_model==None or not os.path.exists("models/"+pretrained_model):
+        pretrained_model = None
+        self.logger.info("No pretrained model found. Training from scratch.")
+    else:
+        self.logger.info(f"Using pretrained model {pretrained_model}")
 
     # Learning rate von 0.1 funktioniert gut, ist aber recht langsam
     self.agent = QLearningAgent(pretrained_model=pretrained_model, logger=self.logger, learning_rate=0.01, gamma = 0, max_epsilon = 0.2, min_epsilon = 0.05, decay_rate = 0.0001)
@@ -70,9 +76,11 @@ def act(self, game_state: dict) -> str:
             if coin not in self.all_coins_game:
                 self.all_coins_game.append(coin)
 
+    max_score = max([x[1] for x in game_state['others']])
+
     num_coins_already_discovered = len(self.all_coins_game)
-    feature_vector = state_to_small_features(
-        game_state, num_coins_already_discovered)
+    feature_vector = state_to_large_features(
+        game_state, max_score, num_coins_already_discovered)
     
     return self.agent.act(feature_vector, 
                         n_round = game_state["round"], 

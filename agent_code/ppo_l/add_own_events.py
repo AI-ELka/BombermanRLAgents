@@ -1,6 +1,6 @@
-from agent_code.ql.utils import *
+from agent_code.ppo_l.utils import *
 import events as e
-import agent_code.ql.own_events as own_e
+import agent_code.ppo_l.own_events as own_e
 
 GAME_REWARDS = {
         # Idea: If we want the action it should sum up to positive number, if not it should be negative
@@ -9,8 +9,8 @@ GAME_REWARDS = {
         own_e.CONSTANT_PENALTY: -0.001,
         own_e.WON_ROUND: 0,#10,
         own_e.GOT_IN_LOOP: -0.05,
-        own_e.ESCAPING: 0.2, 
-        own_e.NOT_ESCAPING: -0.2,
+        own_e.ESCAPING: 2,#0.2, 
+        own_e.NOT_ESCAPING: --0.2,
         own_e.OUT_OF_DANGER: 1, 
         own_e.IS_IN_DANGER: 0,#-0.1,
         own_e.CLOSER_TO_COIN: 0.15,
@@ -18,21 +18,21 @@ GAME_REWARDS = {
         own_e.CLOSER_TO_CRATE: 0.04,
         own_e.AWAY_FROM_CRATE: -0.02,
         own_e.WAITED_NECESSARILY: 0.1,
-        own_e.WAITED_UNNECESSARILY: -2,
+        own_e.WAITED_UNNECESSARILY: -10,
         own_e.CLOSER_TO_PLAYERS: 0.08,
         own_e.AWAY_FROM_PLAYERS: -0.06, 
-        own_e.SMART_BOMB_DROPPED: 0.5,
+        own_e.SMART_BOMB_DROPPED: 2,
         own_e.DUMB_BOMB_DROPPED: -8,
 
         # DEFAULT EVENTS
         e.INVALID_ACTION: -10,
         e.BOMB_DROPPED: 0,
         e.BOMB_EXPLODED: 0,
-        e.CRATE_DESTROYED: 0.01,
+        e.CRATE_DESTROYED: 0.5,#0.01,
         e.COIN_FOUND: 0,
         e.COIN_COLLECTED: 3,
-        e.KILLED_OPPONENT: 7,
-        e.KILLED_SELF: 0,
+        e.KILLED_OPPONENT: 30,
+        e.KILLED_SELF: -10,
         e.GOT_KILLED: -10,
         e.OPPONENT_ELIMINATED: 0,
     }

@@ -15,9 +15,9 @@ from collections import deque
 import torch
 import os
 
-from agent_code.nucleus.ppo import PPOAgent
-from agent_code.nucleus.feature_extraction import state_to_small_features_ppo, state_to_large_features, FEATURE_VECTOR_SIZE
-from agent_code.nucleus.utils import print_large_feature_vector
+from agent_code.ppo_l.ppo import PPOAgent
+from agent_code.ppo_l.feature_extraction import state_to_small_features_ppo, state_to_large_features, FEATURE_VECTOR_SIZE
+from agent_code.ppo_l.utils import print_large_feature_vector
 
 
 def setup(self):
@@ -54,7 +54,7 @@ def setup(self):
     # Agent Position history before normalization
     self.agent_coord_history = deque([], self.MAX_COORD_HISTORY)
 
-    if not os.path.exists("models/"+PRETRAINED_MODEL):
+    if PRETRAINED_MODEL==None or not os.path.exists("models/"+PRETRAINED_MODEL):
         PRETRAINED_MODEL = None
         self.logger.info("No pretrained model found. Training from scratch.")
     else:

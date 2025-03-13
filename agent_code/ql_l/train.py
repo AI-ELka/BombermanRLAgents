@@ -6,12 +6,12 @@ Deep learning approach with strong feature engineering
 """
 from typing import List
 
-from agent_code.ql.feature_extraction import state_to_small_features
-from agent_code.ql.add_own_events import add_own_events_q_learning, GAME_REWARDS
-from agent_code.ql.q_learning import *
+from agent_code.ql_l.feature_extraction import state_to_large_features
+from agent_code.ql_l.add_own_events import add_own_events_q_learning, GAME_REWARDS
+from agent_code.ql_l.q_learning import *
 
 # Hyper parameters:
-SAVE_EVERY_N_EPOCHS = 10
+SAVE_EVERY_N_EPOCHS = 50
 
 
 def setup_training(self):
@@ -41,8 +41,11 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     num_coins_already_discovered = len(self.all_coins_game)
 
 
-    old_feature_state = state_to_small_features(old_game_state, num_coins_already_discovered)#.to(self.device)
-    new_feature_state = state_to_small_features(new_game_state, num_coins_already_discovered)#.to(self.device)
+    old_max_score = max([x[1] for x in old_game_state['others']])
+    new_max_score = max([x[1] for x in new_game_state['others']])
+
+    old_feature_state = state_to_large_features(old_game_state, old_max_score, num_coins_already_discovered)#.to(self.device)
+    new_feature_state = state_to_large_features(new_game_state, new_max_score, num_coins_already_discovered)#.to(self.device)
 
     # Hand out self shaped events
     events = add_own_events_q_learning(old_game_state, 
@@ -76,7 +79,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     reward = reward_from_events(self, events)
     num_coins_already_discovered = len(self.all_coins_game)
 
-    old_feature_state = state_to_small_features(last_game_state, num_coins_already_discovered)#.to(self.device)
+    last_max_score = max([x[1] for x in last_game_state['others']])
+    old_feature_state = state_to_large_features(last_game_state, last_max_score, num_coins_already_discovered)#.to(self.device)
 
     # Hand out self shaped events
     events = add_own_events_q_learning(last_game_state,

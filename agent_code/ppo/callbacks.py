@@ -15,9 +15,9 @@ from collections import deque
 import torch
 import os
 
-from agent_code.nucleus.ppo import PPOAgent
-from agent_code.nucleus.feature_extraction import state_to_small_features_ppo, state_to_large_features, FEATURE_VECTOR_SIZE
-from agent_code.nucleus.utils import print_large_feature_vector
+from agent_code.ppo.ppo import PPOAgent
+from agent_code.ppo.feature_extraction import state_to_small_features_ppo, state_to_large_features, FEATURE_VECTOR_SIZE
+from agent_code.ppo.utils import print_large_feature_vector
 
 
 def setup(self):

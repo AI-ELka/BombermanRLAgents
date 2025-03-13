@@ -17,16 +17,16 @@ This project explores **Reinforcement Learning (RL)** techniques in the **Bomber
 
 ## Agents Implemented
 
-### 🔹 Nucleus (PPO-Based Agent)
+### 🔹 PPO-Based Agent
 - **Algorithm:** Proximal Policy Optimization (PPO)
 - **Status:** Currently being optimized
-- **Location:** `agent_code/nucleus`
+- **Location:** `agent_code/ppo`
 - **Description:** Nucleus leverages PPO for policy learning. However, performance is still being refined to mitigate suboptimal behaviors like staying idle or failing to escape bomb blasts.
 
 ### 🔹 QL_Agent (Q-Learning Baseline)
 - **Algorithm:** Q-Learning
 - **Status:** Stable performance
-- **Location:** `agent_code/ql_agent`
+- **Location:** `agent_code/ql`
 - **Description:** QL_Agent serves as a comparative baseline, utilizing tabular Q-learning to make decisions based on a learned value function.
 
 ## Environment Overview
@@ -52,14 +52,14 @@ The **Bomberman environment** is a **grid-based game** where agents navigate a m
    ```
 
 ### Running an Agent
-To run **Nucleus**:
+To run **ppo**:
 ```bash
-python main.py --agent nucleus <other-agents>
+python main.py --agent ppo <other-agents>
 ```
 
 To run **QL_Agent**:
 ```bash
-python main.py --agent ql_agent <other-agents>
+python main.py --agent ql <other-agents>
 ```
 
 To train, add a `--train <idx-up-to-which-you-train> --n-rounds <n-rounds>`

@@ -1,9 +1,9 @@
 
 import torch
 
-from agent_code.nucleus.utils import *
+from agent_code.ql_l.utils import *
 
-FEATURE_VECTOR_SIZE=29
+FEATURE_VECTOR_SIZE=24
 
 def state_to_large_features(game_state: dict, max_opponents_score: int, num_coins_already_discovered: int) -> torch.tensor:
     """
@@ -16,7 +16,7 @@ def state_to_large_features(game_state: dict, max_opponents_score: int, num_coin
             [3]:Right
             [4]:Wait
 
-        Amount of danger in next moves from 0 (Safe)  to 1 (Immideatly dead)
+        remove: Amount of danger in next moves from 0 (Safe)  to 1 (Immideatly dead)
             [5]:Up
             [6]:Down
             [7]:Left
@@ -45,7 +45,7 @@ def state_to_large_features(game_state: dict, max_opponents_score: int, num_coin
 
         [24] Could we survive a placed Bomb
 
-        [25] Can we place a bomb
+        remove: [25] Can we place a bomb
 
         [26] Very smart bomb position: Would destroy 4 or more crates or opponent in trap
 
@@ -118,6 +118,11 @@ def state_to_large_features(game_state: dict, max_opponents_score: int, num_coin
     # Are we currently in the lead?
     own_score = state.self[1]
     feature_vector[29] = own_score > max_opponents_score
+
+    reduced_feature_vector = torch.zeros(24)
+    reduced_feature_vector[:5] = feature_vector[:5]
+    reduced_feature_vector[6:21] = feature_vector[10:25]
+    reduced_feature_vector[21:] = feature_vector[26:29]
 
     return feature_vector
 
