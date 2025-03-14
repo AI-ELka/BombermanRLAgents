@@ -1,7 +1,7 @@
 
 import torch
 
-from agent_code.ql_l.utils import *
+from agent_code.qdl.utils import *
 
 FEATURE_VECTOR_SIZE=24
 

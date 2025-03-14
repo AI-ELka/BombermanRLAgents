@@ -16,7 +16,7 @@ import torch
 import os
 
 from agent_code.ppo_l.ppo import PPOAgent
-from agent_code.ppo_l.feature_extraction import state_to_small_features_ppo, state_to_large_features, FEATURE_VECTOR_SIZE
+from agent_code.ppo_l.feature_extraction import state_to_large_features_ppo, FEATURE_VECTOR_SIZE
 from agent_code.ppo_l.utils import print_large_feature_vector
 
 
@@ -37,8 +37,8 @@ def setup(self):
     self.MAX_COORD_HISTORY = 7
     HIDDEN_SIZE = 512
     NETWORK_TYPE = 'MLP'
-    PRETRAINED_MODEL = "echo.pt"
-    self.MODEL_NAME = "echo"
+    PRETRAINED_MODEL = "large_ppo.pt"
+    self.MODEL_NAME = "large_ppo"
     self.SAVE_ROUNDS = []
 
     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,6 +59,9 @@ def setup(self):
         self.logger.info("No pretrained model found. Training from scratch.")
     else:
         self.logger.info(f"Using pretrained model {PRETRAINED_MODEL}")
+    if not os.path.exists("models"):
+        # Create the directory if it doesn't exist
+        os.makedirs("models", exist_ok=True)
     self.agent = PPOAgent(pretrained_model=PRETRAINED_MODEL,
                         input_feature_size=FEATURE_VECTOR_SIZE,
                         hidden_size=HIDDEN_SIZE,
@@ -112,7 +115,7 @@ def act(self, game_state: dict) -> str:
 
     num_coins_already_discovered = len(self.all_coins_game)
 
-    feature_vector = state_to_small_features_ppo(game_state, num_coins_already_discovered).to(self.device)
+    feature_vector = state_to_large_features_ppo(game_state, num_coins_already_discovered).to(self.device)
     
     #feature_vector = state_to_large_features(game_state, self.max_opponents_score, num_coins_already_discovered)
     """if 'BOMB_PLACED' in events:

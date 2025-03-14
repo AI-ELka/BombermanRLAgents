@@ -231,21 +231,23 @@ class PPOAgent:
             idx_action = dist.probs.argmax()  # TODO this correct?
 
         self.temp_reward = 0
-        force_bomb_escape = True
-        if force_bomb_escape:
+        force_bomb_escape = False
+        if not force_bomb_escape:
             if idx_action<=4:
                 if feature_vector[0]==1 or feature_vector[1]==1 or feature_vector[2]==1 or feature_vector[3]==1 or feature_vector[4]==1:
                     if feature_vector[idx_action]==1:
-                        self.temp_reward = 1
+                        self.temp_reward = 3
                     else:
-                        self.temp_reward = -1
-                
+                        self.temp_reward = -3
+        else:
+            if feature_vector[0]==1 or feature_vector[1]==1 or feature_vector[2]==1 or feature_vector[3]==1 or feature_vector[4]==1:
+                idx_action = [i for i, x in enumerate(feature_vector[:5]) if x == 1][0]
 
         return ACTIONS[idx_action]
 
     def training_step(self, old_feature_state, new_feature_state, 
-                      action_took: str, reward: float, is_terminal: bool, 
-                      time_feature_extraction, time_own_events):
+                    action_took: str, reward: float, is_terminal: bool, 
+                    time_feature_extraction, time_own_events):
         self.states.append(old_feature_state.to(self.device))
         idx_action = ACTIONS.index(action_took)
         self.actions.append(idx_action)

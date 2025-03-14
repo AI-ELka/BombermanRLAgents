@@ -6,12 +6,12 @@ Deep learning approach with strong feature engineering
 """
 from typing import List
 
-from agent_code.ql_l.feature_extraction import state_to_large_features
-from agent_code.ql_l.add_own_events import add_own_events_q_learning, GAME_REWARDS
-from agent_code.ql_l.q_learning import *
+from agent_code.qdl.feature_extraction import state_to_large_features
+from agent_code.qdl.add_own_events import add_own_events_q_learning, GAME_REWARDS
+from agent_code.qdl.q_learning import *
 
 # Hyper parameters:
-SAVE_EVERY_N_EPOCHS = 100
+SAVE_EVERY_N_EPOCHS = 500
 
 
 def setup_training(self):

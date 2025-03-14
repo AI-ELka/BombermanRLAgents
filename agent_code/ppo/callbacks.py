@@ -37,7 +37,7 @@ def setup(self):
     self.MAX_COORD_HISTORY = 7
     HIDDEN_SIZE = 512
     NETWORK_TYPE = 'MLP'
-    PRETRAINED_MODEL = "echo.pt"
+    PRETRAINED_MODEL = "useful/echo_last.pt"
     self.MODEL_NAME = "echo"
     self.SAVE_ROUNDS = []
 

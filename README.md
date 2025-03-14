@@ -61,9 +61,9 @@ If a trainable agent does not include `train.py`, an exception will be raised.
 2. Install dependencies:
 
 ### Running an Agent
-To run **ppo**:
+To run agents, execute: `python3 main.py play --agent <name-agent-1> <name-agent-2> [<name-agent-3> <name-agent-4>]`
 
-To run **QL_Agent**:
+Example: `python3 main.py play --agent ppo ql rule_based_agent`
 
 To train, add a `--train <idx-up-to-which-you-train> --n-rounds <n-rounds>`
 

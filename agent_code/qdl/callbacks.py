@@ -9,8 +9,8 @@ in the classic setting with 3 rule based agents as opponents
 from collections import deque
 
 import os
-from agent_code.ql_l.feature_extraction import state_to_large_features
-from agent_code.ql_l.q_learning import QLearningAgent
+from agent_code.qdl.feature_extraction import state_to_large_features
+from agent_code.qdl.q_learning import QLearningAgent
 
 
 

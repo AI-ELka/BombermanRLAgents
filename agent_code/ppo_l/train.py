@@ -12,7 +12,7 @@ import torch
 
 import events as e
 import agent_code.ppo_l.own_events as own_e
-from agent_code.ppo_l.feature_extraction import state_to_small_features_ppo, state_to_large_features
+from agent_code.ppo_l.feature_extraction import state_to_large_features_ppo
 from agent_code.ppo_l.add_own_events import add_own_events_ppo, add_own_events_q_learning, GAME_REWARDS
 
 
@@ -56,8 +56,8 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     start_time = time.time()
 
-    old_feature_state = state_to_small_features_ppo(old_game_state, num_coins_already_discovered).to(self.device)
-    new_feature_state = state_to_small_features_ppo(new_game_state, num_coins_already_discovered).to(self.device)
+    old_feature_state = state_to_large_features_ppo(old_game_state, num_coins_already_discovered).to(self.device)
+    new_feature_state = state_to_large_features_ppo(new_game_state, num_coins_already_discovered).to(self.device)
 
     #old_feature_state = state_to_large_features(old_game_state, self.max_opponents_score, num_coins_already_discovered)
     #new_feature_state = state_to_large_features(new_game_state, self.max_opponents_score, num_coins_already_discovered)
@@ -112,7 +112,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     num_coins_already_discovered = len(self.all_coins_game)
 
     start_time = time.time()
-    old_feature_state = state_to_small_features_ppo(last_game_state, num_coins_already_discovered).to(self.device)
+
+    old_feature_state = state_to_large_features_ppo(last_game_state, num_coins_already_discovered).to(self.device)
     #old_feature_state = state_to_large_features(last_game_state, self.max_opponents_score, num_coins_already_discovered)
     time_feature_extraction = (time.time() - start_time)
 
@@ -135,7 +136,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     reward = reward_from_events(self, events)
 
     self.agent.training_step(old_feature_state, None, last_action, reward,  is_terminal, 
-                             time_feature_extraction, time_own_events)
+                            time_feature_extraction, time_own_events)
 
     # Store the model
     n_round = last_game_state['round']
