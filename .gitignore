@@ -1,5 +1,6 @@
 # trained models
 *.pt
+*.pth
 *.log
 *.npz
 *.pkl
@@ -108,6 +109,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+csv
+
 
 .idea
 /models

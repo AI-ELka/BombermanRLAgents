@@ -37,8 +37,8 @@ def setup(self):
     self.MAX_COORD_HISTORY = 7
     HIDDEN_SIZE = 512
     NETWORK_TYPE = 'MLP'
-    PRETRAINED_MODEL = "useful/echo_last.pt"
-    self.MODEL_NAME = "echo"
+    PRETRAINED_MODEL = "useful/ppo.pt"
+    self.MODEL_NAME = "ppo"
     self.SAVE_ROUNDS = []
 
     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

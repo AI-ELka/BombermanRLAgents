@@ -7,6 +7,7 @@ Agent "atom" continiously achieves about 5.1 points per game,
 in the classic setting with 3 rule based agents as opponents
 """
 from collections import deque
+import os
 
 from agent_code.dql.feature_extraction import state_to_small_features
 from agent_code.dql.deep_q_learning import DeepQLearningAgent
@@ -36,6 +37,9 @@ def setup(self):
   pretrained_model = self.MODEL_NAME
 
   self.agent = DeepQLearningAgent(logger = self.logger, device = "cpu")
+
+  if os.path.exists("models/"+pretrained_model):
+    self.agent.load(pretrained_model)
 
 def reset_self(self, game_state: dict):
     self.agent_coord_history = deque([], self.MAX_COORD_HISTORY)

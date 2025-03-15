@@ -77,5 +77,5 @@ To train without GUI, add a `--no-gui`
 
 ---
 
-For further details, please check the GitHub repository. 🚀
+For further details, please check the GitHub repository.
 

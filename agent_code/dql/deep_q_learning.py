@@ -235,6 +235,12 @@ class DeepQLearningAgent:
 
   def save(self, model_name="dqn.pth"):
     model_path = os.path.join('./models', model_name)
-    torch.save(self.q_network, model_path)
+    torch.save(self.q_network.state_dict(), model_path)
     if self.logger:
       self.logger.info("DQN saved to {}".format(model_path))
+
+  def load(self, model_name="dqn.pth"):
+    model_path = os.path.join('./models', model_name)
+    self.q_network.load_state_dict(torch.load(model_path))
+    if self.logger:
+      self.logger.info("DQN loaded from {}".format(model_path))
