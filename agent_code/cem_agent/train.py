@@ -1,140 +1,183 @@
-import os
-import numpy as np
+from collections import namedtuple, deque
 import pickle
-from collections import deque
-import events as e
-from .state_representation import state_to_features
-from .rewards import reward_from_events
+from typing import List
+import numpy as np
 
-# Actions in the Bomberman environment
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+import events as e
+from .callbacks import state_to_features, ACTIONS
 
 # Hyperparameters
-POPULATION_SIZE = 50
-ELITE_FRAC = 0.2
-TRANSITION_HISTORY_SIZE = 1000
-LEARNING_RATE = 0.01
+TRANSITION_HISTORY_SIZE = 1000  # Keep only the last 1000 transitions
+ELITE_PERCENTAGE = 0.2  # Top 20% are considered elite
+BATCH_SIZE = 50  # Number of episodes to wait before updating
+N_SAMPLES = 20  # Number of parameter samples to generate
+
+Transition = namedtuple('Transition',
+                        ('state', 'action', 'next_state', 'reward'))
+
 
 def setup_training(self):
     """
-    Initialize training-specific data structures.
+    Initialize the training data structures:
+    - self.transitions: list of all observed transitions
+    - self.batch_rewards: rewards accumulated for each episode in the current batch
+    - self.current_batch: counter for the current batch
     """
-    # Initialize memory for experience replay
     self.transitions = deque(maxlen=TRANSITION_HISTORY_SIZE)
-    
-    # CEM parameters
-    self.population_size = POPULATION_SIZE
-    self.elite_frac = ELITE_FRAC
-    self.elite_size = int(self.population_size * self.elite_frac)
-    
-    # Feature size depends on your state representation
-    self.state_size = 5  # Adjust based on your state_to_features function
-    
-    if not hasattr(self, 'model') or self.model is None:
-        self.model = {
-            'mean': np.zeros(self.state_size),
-            'std': np.ones(self.state_size),
-        }
+    self.batch_rewards = []
+    self.current_batch = 0
+    self.episode_reward = 0
+    self.train = True
+
 
 def game_events_occurred(self, old_game_state, self_action, new_game_state, events):
     """
-    Called when a game event occurred. Use this to learn from the rewards of your actions.
-    
-    :param old_game_state: The state before your action
-    :param self_action: The action you took
-    :param new_game_state: The state after your action
-    :param events: List of events that occurred
+    Called once per step to update the agent's knowledge based on events.
     """
-    self.logger.debug(f'Encountered game event(s) {", ".join(map(str, events))} in step {new_game_state["step"]}')
-    
-    # Skip invalid game states
-    if old_game_state is None or new_game_state is None:
+    self.logger.debug(f'Encountered game event(s): {", ".join(map(repr, events))}')
+
+    # Skip if there's no old_game_state
+    if old_game_state is None:
         return
     
     # Calculate reward from events
     reward = reward_from_events(self, events)
+    self.episode_reward += reward
     
-    # Store transition for later training
+    # Convert states to feature representation
     old_features = state_to_features(old_game_state)
     new_features = state_to_features(new_game_state)
-    action_idx = ACTIONS.index(self_action) if self_action in ACTIONS else -1
     
-    if action_idx != -1:
-        # Add valid transition to memory
-        self.transitions.append((old_features, action_idx, reward, new_features))
+    # Store the transition
+    if old_features is not None and new_features is not None:
+        # Convert action string to index
+        action_idx = ACTIONS.index(self_action)
+        self.transitions.append(Transition(old_features, action_idx, new_features, reward))
 
-    # Periodically update the model using the CEM algorithm
-    if len(self.transitions) >= self.population_size and new_game_state["step"] % 10 == 0:
-        update_model_cem(self)
 
 def end_of_round(self, last_game_state, last_action, events):
     """
-    Called at the end of each round to update the model and save it.
-    
-    :param last_game_state: The final game state
-    :param last_action: The last action taken
-    :param events: List of events that occurred after the last action
+    Called at the end of each game to update the agent's policy.
     """
-    self.logger.debug(f'Encountered event(s) {", ".join(map(str, events))} in final step')
+    self.logger.debug(f'Encountered event(s) in final step: {", ".join(map(repr, events))}')
     
-    # Calculate final reward from events
+    # Calculate final reward and add to episode total
     reward = reward_from_events(self, events)
+    self.episode_reward += reward
     
-    # Store the last transition
-    if last_game_state is not None and last_action is not None:
-        features = state_to_features(last_game_state)
-        action_idx = ACTIONS.index(last_action) if last_action in ACTIONS else -1
-        
-        if action_idx != -1:
-            # Terminal state (None) for new_features
-            self.transitions.append((features, action_idx, reward, None))
+    # Add the last state-action transition if appropriate
+    if last_game_state is not None:
+        last_features = state_to_features(last_game_state)
+        if last_features is not None and last_action is not None:
+            action_idx = ACTIONS.index(last_action)
+            # Use a dummy next state as there is none
+            self.transitions.append(Transition(last_features, action_idx, None, reward))
     
-    # Final update of the model
-    if len(self.transitions) >= self.population_size:
+    # Store this episode's total reward
+    self.batch_rewards.append(self.episode_reward)
+    self.episode_reward = 0
+    self.current_batch += 1
+    
+    # Update the model when we've collected enough episodes
+    if self.current_batch >= BATCH_SIZE and len(self.transitions) > 0:
+        self.logger.info(f"Updating model after {self.current_batch} episodes")
         update_model_cem(self)
-    
+        self.current_batch = 0
+        self.batch_rewards = []
+        
     # Save the model
     with open("my-saved-model.pt", "wb") as file:
         pickle.dump(self.model, file)
 
+
+def reward_from_events(self, events: List[str]) -> float:
+    """
+    Calculate the reward based on game events.
+    """
+    game_rewards = {
+        e.COIN_COLLECTED: 1,
+        e.KILLED_OPPONENT: 5,
+        e.MOVED_RIGHT: 0.1,
+        e.MOVED_LEFT: 0.1,
+        e.MOVED_UP: 0.1,
+        e.MOVED_DOWN: 0.1,
+        e.WAITED: -0.1,
+        e.INVALID_ACTION: -1,
+        e.BOMB_DROPPED: 0.2,
+        e.CRATE_DESTROYED: 0.5,
+        e.COIN_FOUND: 0.5,
+        e.KILLED_SELF: -5
+    }
+    
+    reward_sum = 0
+    for event in events:
+        if event in game_rewards:
+            reward_sum += game_rewards[event]
+    
+    return reward_sum
+
+
 def update_model_cem(self):
     """
-    Update the model using the Cross-Entropy Method (CEM).
+    Update the model using the Cross-Entropy Method.
     """
-    if len(self.transitions) < self.population_size:
+    # Check if we have enough transitions
+    if len(self.transitions) < 10:
+        self.logger.info("Not enough transitions for meaningful update")
         return
-    
-    # Sample transitions
-    batch = np.random.choice(len(self.transitions), self.population_size, replace=False)
-    states = np.array([self.transitions[i][0] for i in batch])
-    
-    # Generate policy variations
-    policies = np.random.normal(self.model['mean'], self.model['std'], 
-                                (self.population_size, len(self.model['mean'])))
-    
-    # Evaluate each policy
-    rewards = []
-    for policy in policies:
-        # Compute the expected reward for this policy
-        policy_reward = 0
-        for i in batch:
-            old_state, action, reward, _ = self.transitions[i]
-            action_probs = np.dot(old_state, policy)
-            predicted_action = np.argmax(action_probs)
-            
-            # Reward the policy if it would have chosen the same action
-            if predicted_action == action:
-                policy_reward += reward
         
-        rewards.append(policy_reward)
+    # Extract features and actions from transitions
+    states = np.array([t.state for t in self.transitions if t.state is not None])
+    actions = np.array([t.action for t in self.transitions if t.state is not None])
     
-    # Select elite policies
-    rewards = np.array(rewards)
-    elite_indices = np.argsort(rewards)[-self.elite_size:]
-    elite_policies = policies[elite_indices]
+    # Get dimensions
+    n_features = states.shape[1]
+    n_actions = len(ACTIONS)
     
-    # Update the model
-    self.model['mean'] = np.mean(elite_policies, axis=0)
-    self.model['std'] = np.std(elite_policies, axis=0) + 1e-8  # Avoid division by zero
+    # Check if model has the correct keys - if not, initialize them
+    if 'weights' not in self.model:
+        if 'mean' in self.model:
+            # Convert old format to new format
+            self.model['weights'] = np.zeros((n_features, n_actions))
+            if isinstance(self.model['std'], np.ndarray) and self.model['std'].ndim == 1:
+                self.model['std'] = np.ones((n_features, n_actions)) * 0.5
+        else:
+            self.logger.error("Model structure is incorrect")
+            return
     
-    self.logger.debug(f"Model updated: mean reward = {np.mean(rewards[elite_indices])}")
+    # Generate parameter samples around current mean
+    samples = []
+    sample_returns = []
+    
+    for _ in range(N_SAMPLES):
+        # Generate sample weights with noise based on current std
+        sample_weights = self.model['weights'] + np.random.normal(0, 1, (n_features, n_actions)) * self.model['std']
+        
+        # Evaluate the sample by looking at what actions it would take
+        total_return = 0
+        for state, action, _, reward in self.transitions:
+            # Get the action the sample would choose
+            action_logits = np.dot(state, sample_weights)
+            sample_action = np.argmax(action_logits)
+            
+            # Add reward only if it matches what was actually done
+            if sample_action == action:
+                total_return += reward
+        
+        samples.append(sample_weights)
+        sample_returns.append(total_return)
+    
+    # Get indices of the elite samples
+    elite_count = max(1, int(ELITE_PERCENTAGE * N_SAMPLES))
+    elite_indices = np.argsort(sample_returns)[-elite_count:]
+    
+    # Update mean and std based on elite samples
+    elite_samples = [samples[i] for i in elite_indices]
+    
+    # Update the mean (weights)
+    self.model['weights'] = np.mean(elite_samples, axis=0)
+    
+    # Update the std (with a minimum to avoid collapse)
+    self.model['std'] = np.std(elite_samples, axis=0) + 0.1
+    
+    self.logger.info(f"Updated model - avg return: {np.mean(sample_returns)}, elite return: {np.mean([sample_returns[i] for i in elite_indices])}")
