@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 from random import shuffle
+from .state_representation import state_to_features, manhattan_distance  # Import from state_representation module
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
@@ -16,11 +17,16 @@ def setup(self):
         features = state_to_features(None)  # Get feature dimension
         if features is not None:
             feature_size = len(features)
-            # For each action, we'll have weights to compute policy
+            # Initialize weights with small random values instead of zeros
             self.model = {
-                'weights': np.zeros((feature_size, len(ACTIONS))),  # Changed from 'mean' to 'weights'
-                'std': np.ones((feature_size, len(ACTIONS))) * 0.5,  # Matrix, not vector
+                'weights': np.random.uniform(-0.1, 0.1, (feature_size, len(ACTIONS))),
+                'std': np.ones((feature_size, len(ACTIONS))) * 0.5,
             }
+            
+            # Initialize bomb action with negative weight to discourage bombing at start
+            bomb_index = ACTIONS.index('BOMB')
+            self.model['weights'][:, bomb_index] = -0.2
+            
         else:
             self.logger.error("Failed to determine feature size.")
             self.model = None
@@ -31,13 +37,26 @@ def setup(self):
 
 
 def act(self, game_state):
+    """
+    Your agent should parse the input, think, and take a decision.
+    Apply game logic here.
+    
+    :param self: The same object that is passed to all callbacks.
+    :param game_state: The dictionary describing the current game board.
+    :return: The action to take as a string.
+    """
     # Extract features from game state
     features = state_to_features(game_state)
     
-    # Use the right key 'weights' instead of 'mean'
+    # Add simple safety check to prevent immediate suicide
     if hasattr(self, 'model') and 'weights' in self.model and features is not None:
         # Compute action probabilities using the policy weights
         action_logits = np.dot(features, self.model['weights'])
+        
+        # Safety mechanism: Check if placing a bomb is dangerous
+        bomb_action = ACTIONS.index('BOMB')
+        if is_bomb_dangerous(game_state):
+            action_logits[bomb_action] = float('-inf')  # Make bombing impossible
         
         # Choose the action with the highest score
         action_idx = np.argmax(action_logits)
@@ -45,7 +64,28 @@ def act(self, game_state):
     else:
         # Fallback to random action
         self.logger.debug("No model available or invalid state, choosing action randomly")
-        return np.random.choice(ACTIONS)
+        return np.random.choice([a for a in ACTIONS if a != 'BOMB'])  # Avoid bombs initially
+
+def is_bomb_dangerous(game_state):
+    """Check if placing a bomb would lead to agent's death."""
+    if game_state is None:
+        return True
+        
+    agent_pos = game_state['self'][3]
+    field = game_state['field']
+    
+    # Check if agent is trapped (no escape routes)
+    escape_routes = 0
+    for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+        next_x, next_y = agent_pos[0] + dx, agent_pos[1] + dy
+        # Check if the position is within bounds and walkable
+        if (0 <= next_x < field.shape[0] and 
+            0 <= next_y < field.shape[1] and 
+            field[next_x, next_y] == 0):
+            escape_routes += 1
+    
+    # If there are fewer than 2 escape routes, bombing is dangerous
+    return escape_routes < 2
     
 
 def state_to_features(game_state):

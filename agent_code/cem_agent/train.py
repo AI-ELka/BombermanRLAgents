@@ -90,29 +90,38 @@ def end_of_round(self, last_game_state, last_action, events):
         pickle.dump(self.model, file)
 
 
+# Keep the existing imports and code structure, just update the reward function:
+
 def reward_from_events(self, events: List[str]) -> float:
     """
     Calculate the reward based on game events.
     """
     game_rewards = {
-        e.COIN_COLLECTED: 1,
-        e.KILLED_OPPONENT: 5,
-        e.MOVED_RIGHT: 0.1,
-        e.MOVED_LEFT: 0.1,
-        e.MOVED_UP: 0.1,
-        e.MOVED_DOWN: 0.1,
-        e.WAITED: -0.1,
-        e.INVALID_ACTION: -1,
-        e.BOMB_DROPPED: 0.2,
-        e.CRATE_DESTROYED: 0.5,
-        e.COIN_FOUND: 0.5,
-        e.KILLED_SELF: -5
+        e.COIN_COLLECTED: 5.0,           # Increased reward for collecting coins
+        e.KILLED_OPPONENT: 10.0,         # Major reward for killing opponents
+        e.MOVED_RIGHT: 0.05,             # Small reward for movement
+        e.MOVED_LEFT: 0.05,  
+        e.MOVED_UP: 0.05,    
+        e.MOVED_DOWN: 0.05,
+        e.WAITED: -0.1,                  # Penalty for waiting
+        e.INVALID_ACTION: -1.0,          # Penalty for invalid actions
+        e.BOMB_DROPPED: 0.0,             # Neutral for bombing (depends on context)
+        e.CRATE_DESTROYED: 1.0,          # Good reward for destroying crates
+        e.COIN_FOUND: 1.0,               # Good reward for finding coins
+        e.KILLED_SELF: -10.0,            # Major penalty for killing self
+        e.GOT_KILLED: -5.0               # Major penalty for getting killed
     }
     
     reward_sum = 0
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
+    
+    if e.BOMB_DROPPED in events and e.CRATE_DESTROYED not in events:
+        reward_sum -= 0.5
+    
+    if e.BOMB_DROPPED in events and (e.KILLED_SELF in events or e.GOT_KILLED in events):
+        reward_sum -= 5.0
     
     return reward_sum
 
@@ -181,3 +190,7 @@ def update_model_cem(self):
     self.model['std'] = np.std(elite_samples, axis=0) + 0.1
     
     self.logger.info(f"Updated model - avg return: {np.mean(sample_returns)}, elite return: {np.mean([sample_returns[i] for i in elite_indices])}")
+
+
+
+    
