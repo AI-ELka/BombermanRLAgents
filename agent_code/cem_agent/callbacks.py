@@ -2,10 +2,8 @@ import os
 import pickle
 import numpy as np
 from random import shuffle
-from .state_representation import state_to_features, manhattan_distance  # Import from state_representation module
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-
 
 def setup(self):
     """
@@ -25,7 +23,7 @@ def setup(self):
             
             # Initialize bomb action with negative weight to discourage bombing at start
             bomb_index = ACTIONS.index('BOMB')
-            self.model['weights'][:, bomb_index] = -0.2
+            self.model['weights'][:, bomb_index] = -0.5  # More negative to strongly discourage bombing
             
         else:
             self.logger.error("Failed to determine feature size.")
@@ -50,13 +48,16 @@ def act(self, game_state):
     
     # Add simple safety check to prevent immediate suicide
     if hasattr(self, 'model') and 'weights' in self.model and features is not None:
-        # Compute action probabilities using the policy weights
+        # Compute action logits using the policy weights
         action_logits = np.dot(features, self.model['weights'])
         
         # Safety mechanism: Check if placing a bomb is dangerous
         bomb_action = ACTIONS.index('BOMB')
         if is_bomb_dangerous(game_state):
             action_logits[bomb_action] = float('-inf')  # Make bombing impossible
+        
+        # Debug info
+        self.logger.debug(f"Action logits: {action_logits}")
         
         # Choose the action with the highest score
         action_idx = np.argmax(action_logits)
@@ -65,6 +66,7 @@ def act(self, game_state):
         # Fallback to random action
         self.logger.debug("No model available or invalid state, choosing action randomly")
         return np.random.choice([a for a in ACTIONS if a != 'BOMB'])  # Avoid bombs initially
+
 
 def is_bomb_dangerous(game_state):
     """Check if placing a bomb would lead to agent's death."""
@@ -84,9 +86,25 @@ def is_bomb_dangerous(game_state):
             field[next_x, next_y] == 0):
             escape_routes += 1
     
+    # Also check for existing bombs
+    for bomb_pos, countdown in game_state['bombs']:
+        if manhattan_distance(agent_pos, bomb_pos) <= 3:  # Within blast radius
+            return True  # Don't place bombs near other bombs
+    
     # If there are fewer than 2 escape routes, bombing is dangerous
     return escape_routes < 2
+
+
+def manhattan_distance(pos1, pos2):
+    """
+    Calculate the Manhattan distance between two points.
     
+    :param pos1: Position 1
+    :param pos2: Position 2
+    :return: Manhattan distance
+    """
+    return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
 
 def state_to_features(game_state):
     """
@@ -97,7 +115,7 @@ def state_to_features(game_state):
     """
     # If there is no state, return None
     if game_state is None:
-        return None
+        return np.zeros(10)  # Return zeroes instead of None for initialization
     
     # Get the position of our agent
     agent_position = game_state['self'][3]
@@ -146,22 +164,46 @@ def state_to_features(game_state):
     
     # 5. Is there a coin nearby?
     if game_state['coins']:
-        nearest_coin = min([np.linalg.norm(np.array(agent_position) - np.array(coin_pos)) 
+        nearest_coin = min([manhattan_distance(agent_position, coin_pos) 
                             for coin_pos in game_state['coins']])
         features[4] = 1 / (1 + nearest_coin)  # Closer coins have higher values
     
     # 6. Can we place a bomb?
     features[5] = 1.0 if game_state['self'][2] else 0.0
     
-    # 7-10. Are there opponents nearby?
-    if game_state['others']:
-        nearest_opponent = min([np.linalg.norm(np.array(agent_position) - np.array(other[3])) 
-                               for other in game_state['others']])
-        features[6] = 1 / (1 + nearest_opponent)  # Closer opponents have higher values
+    # 7. Are there crates nearby to bomb?
+    crates_nearby = 0
+    for dx in range(-3, 4):
+        for dy in range(-3, 4):
+            if abs(dx) + abs(dy) <= 3:  # Manhattan distance <= 3
+                nx, ny = x + dx, y + dy
+                if (0 <= nx < field.shape[0] and 
+                    0 <= ny < field.shape[1] and 
+                    field[nx, ny] == 1):  # 1 = crate
+                    crates_nearby += 1
+    features[6] = min(1.0, crates_nearby / 8)  # Normalize
     
-    # Other features could include:
-    # - Direction to nearest coin
-    # - Direction to nearest crate
-    # - Is the agent in danger from a bomb?
-
+    # 8. Is the agent in danger from bombs?
+    in_danger = 0
+    for bomb_pos, countdown in game_state['bombs']:
+        if manhattan_distance(agent_position, bomb_pos) <= 3:
+            in_danger = max(in_danger, (4 - countdown) / 4)  # Higher value = more danger
+    features[7] = in_danger
+    
+    # 9. Escape routes available
+    escape_routes = 0
+    for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+        next_x, next_y = x + dx, y + dy
+        if (0 <= next_x < field.shape[0] and 
+            0 <= next_y < field.shape[1] and 
+            field[next_x, next_y] == 0):
+            escape_routes += 1
+    features[8] = escape_routes / 4  # Normalize
+    
+    # 10. Are there opponents nearby?
+    if game_state['others']:
+        nearest_opponent = min([manhattan_distance(agent_position, other[3]) 
+                               for other in game_state['others']])
+        features[9] = 1 / (1 + nearest_opponent)  # Closer opponents have higher values
+    
     return features
