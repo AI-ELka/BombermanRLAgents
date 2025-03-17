@@ -10,7 +10,7 @@ def setup(self):
     Setup your code. This is called once when loading each agent.
     """
     if not os.path.isfile("my-saved-model.pt"):
-        self.logger.info("Setting up model from scratch.")
+        #self.logger.info("Setting up model from scratch.")
         # Initialize model with proper dimensions based on feature space
         features = state_to_features(None)  # Get feature dimension
         if features is not None:
@@ -26,10 +26,10 @@ def setup(self):
             self.model['weights'][:, bomb_index] = -2.0  # Very negative to prevent bombing early
             
         else:
-            self.logger.error("Failed to determine feature size.")
+            #self.logger.error("Failed to determine feature size.")
             self.model = None
     else:
-        self.logger.info("Loading model from saved state.")
+        #self.logger.info("Loading model from saved state.")
         with open("my-saved-model.pt", "rb") as file:
             self.model = pickle.load(file)
 
@@ -51,7 +51,7 @@ def act(self, game_state):
         # Find safe escape direction
         safe_move = find_safe_move(game_state)
         if safe_move:
-            self.logger.debug(f"DANGER! Moving to safety: {safe_move}")
+            #self.logger.debug(f"DANGER! Moving to safety: {safe_move}")
             return safe_move
     
     # Regular action selection
@@ -65,14 +65,14 @@ def act(self, game_state):
             action_logits[bomb_action] = float('-inf')  # Make bombing impossible
         
         # Debug info
-        self.logger.debug(f"Action logits: {action_logits}")
+        #self.logger.debug(f"Action logits: {action_logits}")
         
         # Choose the action with the highest score
         action_idx = np.argmax(action_logits)
         return ACTIONS[action_idx]
     else:
         # Fallback to random movement (no bombing)
-        self.logger.debug("No model available or invalid state, choosing action randomly")
+        #self.logger.debug("No model available or invalid state, choosing action randomly")
         return np.random.choice([a for a in ACTIONS if a != 'BOMB'])  # Avoid bombs initially
 
 
