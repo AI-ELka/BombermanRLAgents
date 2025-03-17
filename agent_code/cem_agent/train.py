@@ -190,7 +190,4 @@ def update_model_cem(self):
     self.model['std'] = np.std(elite_samples, axis=0) + 0.1
     
     self.logger.info(f"Updated model - avg return: {np.mean(sample_returns)}, elite return: {np.mean([sample_returns[i] for i in elite_indices])}")
-
-
-
     

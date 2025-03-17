@@ -21,9 +21,9 @@ def setup(self):
                 'std': np.ones((feature_size, len(ACTIONS))) * 0.5,
             }
             
-            # Initialize bomb action with negative weight to discourage bombing at start
+            # Initialize bomb action with large negative weight to strongly discourage bombing at start
             bomb_index = ACTIONS.index('BOMB')
-            self.model['weights'][:, bomb_index] = -0.5  # More negative to strongly discourage bombing
+            self.model['weights'][:, bomb_index] = -2.0  # Very negative to prevent bombing early
             
         else:
             self.logger.error("Failed to determine feature size.")
@@ -46,7 +46,15 @@ def act(self, game_state):
     # Extract features from game state
     features = state_to_features(game_state)
     
-    # Add simple safety check to prevent immediate suicide
+    # Special case: If the agent is in immediate danger from a bomb, prioritize escape
+    if game_state is not None and is_in_danger(game_state):
+        # Find safe escape direction
+        safe_move = find_safe_move(game_state)
+        if safe_move:
+            self.logger.debug(f"DANGER! Moving to safety: {safe_move}")
+            return safe_move
+    
+    # Regular action selection
     if hasattr(self, 'model') and 'weights' in self.model and features is not None:
         # Compute action logits using the policy weights
         action_logits = np.dot(features, self.model['weights'])
@@ -63,9 +71,82 @@ def act(self, game_state):
         action_idx = np.argmax(action_logits)
         return ACTIONS[action_idx]
     else:
-        # Fallback to random action
+        # Fallback to random movement (no bombing)
         self.logger.debug("No model available or invalid state, choosing action randomly")
         return np.random.choice([a for a in ACTIONS if a != 'BOMB'])  # Avoid bombs initially
+
+
+def is_in_danger(game_state):
+    """Check if agent is in immediate danger from bombs."""
+    if game_state is None:
+        return False
+        
+    agent_pos = game_state['self'][3]
+    bombs = game_state['bombs']
+    
+    # Check if any bomb could hit the agent
+    for bomb_pos, countdown in bombs:
+        if manhattan_distance(agent_pos, bomb_pos) <= 3:  # Within blast radius
+            return True  # Agent is in danger
+    
+    return False
+
+
+def find_safe_move(game_state):
+    """Find a safe move away from bombs."""
+    if game_state is None:
+        return None
+        
+    agent_pos = game_state['self'][3]
+    field = game_state['field']
+    bombs = game_state['bombs']
+    explosion_map = game_state['explosion_map']
+    
+    # Evaluate safety of each possible move
+    moves = ['UP', 'RIGHT', 'DOWN', 'LEFT']
+    directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # Up, right, down, left
+    
+    # Calculate safety scores for each direction
+    safety_scores = []
+    
+    for i, (dx, dy) in enumerate(directions):
+        nx, ny = agent_pos[0] + dx, agent_pos[1] + dy
+        
+        # Check if move is valid
+        if nx < 0 or nx >= field.shape[0] or ny < 0 or ny >= field.shape[1] or field[nx, ny] != 0:
+            safety_scores.append(-999)  # Invalid move
+            continue
+            
+        # Start with a base safety score
+        safety = 0
+        
+        # Decrease safety if the position is within explosion radius of a bomb
+        for bomb_pos, countdown in bombs:
+            bomb_x, bomb_y = bomb_pos
+            
+            # If in same row or column as bomb and within bomb blast radius (3)
+            if ((nx == bomb_x and abs(ny - bomb_y) <= 3) or
+                (ny == bomb_y and abs(nx - bomb_x) <= 3)):
+                safety -= (4 - countdown) * 10  # Urgency increases as countdown decreases
+                
+        # Decrease safety if on explosion map
+        if explosion_map[nx, ny] > 0:
+            safety -= 100
+            
+        # Lower safety for tiles closer to bombs
+        for bomb_pos, _ in bombs:
+            distance = manhattan_distance((nx, ny), bomb_pos)
+            safety -= max(0, 5 - distance)  # Penalize positions close to bombs
+            
+        safety_scores.append(safety)
+    
+    # Find the safest move that's valid
+    if max(safety_scores) > -999:
+        best_move_idx = np.argmax(safety_scores)
+        return moves[best_move_idx]
+    
+    # If no safe move, try WAIT (as a last resort)
+    return 'WAIT'
 
 
 def is_bomb_dangerous(game_state):
@@ -76,23 +157,86 @@ def is_bomb_dangerous(game_state):
     agent_pos = game_state['self'][3]
     field = game_state['field']
     
-    # Check if agent is trapped (no escape routes)
+    # Check for existing bombs nearby
+    for bomb_pos, countdown in game_state['bombs']:
+        if manhattan_distance(agent_pos, bomb_pos) <= 3:
+            return True  # Don't place bombs near other bombs
+    
+    # Count escape routes and check if any are truly safe
     escape_routes = 0
+    safe_escape_routes = 0
+    
     for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
         next_x, next_y = agent_pos[0] + dx, agent_pos[1] + dy
-        # Check if the position is within bounds and walkable
+        
+        # Check if position is walkable
         if (0 <= next_x < field.shape[0] and 
             0 <= next_y < field.shape[1] and 
             field[next_x, next_y] == 0):
             escape_routes += 1
+            
+            # Check if this escape route leads to more escape routes (truly safe)
+            further_escapes = 0
+            for fx, fy in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+                third_x, third_y = next_x + fx, next_y + fy
+                # Exclude the original position
+                if (third_x, third_y) != agent_pos:
+                    if (0 <= third_x < field.shape[0] and 
+                        0 <= third_y < field.shape[1] and 
+                        field[third_x, third_y] == 0):
+                        further_escapes += 1
+            
+            if further_escapes >= 1:
+                safe_escape_routes += 1
     
-    # Also check for existing bombs
-    for bomb_pos, countdown in game_state['bombs']:
-        if manhattan_distance(agent_pos, bomb_pos) <= 3:  # Within blast radius
-            return True  # Don't place bombs near other bombs
+    # Are there useful targets for bombing?
+    bomb_is_useful = False
     
-    # If there are fewer than 2 escape routes, bombing is dangerous
-    return escape_routes < 2
+    # Check for crates or enemies in bomb range
+    for direction in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+        for distance in range(1, 4):  # Bomb range is typically 3
+            x = agent_pos[0] + direction[0] * distance
+            y = agent_pos[1] + direction[1] * distance
+            
+            # Check bounds
+            if not (0 <= x < field.shape[0] and 0 <= y < field.shape[1]):
+                break
+                
+            # Stop at walls
+            if field[x, y] == -1:
+                break
+                
+            # Found a crate (useful for bombing)
+            if field[x, y] == 1:
+                bomb_is_useful = True
+    
+    # Check for enemies
+    for enemy in game_state['others']:
+        enemy_pos = enemy[3]
+        if manhattan_distance(agent_pos, enemy_pos) <= 3:
+            # Check if enemy is in line with agent (can be hit by bomb)
+            if enemy_pos[0] == agent_pos[0] or enemy_pos[1] == agent_pos[1]:
+                # Check for walls between agent and enemy
+                can_hit = True
+                if enemy_pos[0] == agent_pos[0]:  # same column
+                    for y in range(min(agent_pos[1], enemy_pos[1]) + 1, max(agent_pos[1], enemy_pos[1])):
+                        if field[agent_pos[0], y] != 0:
+                            can_hit = False
+                            break
+                else:  # same row
+                    for x in range(min(agent_pos[0], enemy_pos[0]) + 1, max(agent_pos[0], enemy_pos[0])):
+                        if field[x, agent_pos[1]] != 0:
+                            can_hit = False
+                            break
+                
+                if can_hit:
+                    bomb_is_useful = True
+    
+    # Only allow bombing if:
+    # 1. There are at least 2 escape routes
+    # 2. At least one escape route leads to further safe positions
+    # 3. Either there are crates to destroy or enemies to hit
+    return not (escape_routes >= 2 and safe_escape_routes >= 1 and bomb_is_useful)
 
 
 def manhattan_distance(pos1, pos2):
@@ -113,9 +257,9 @@ def state_to_features(game_state):
     :param game_state: A dictionary describing the current game board.
     :return: A numpy array of features.
     """
-    # If there is no state, return None
+    # If there is no state, return zeros (for initialization)
     if game_state is None:
-        return np.zeros(10)  # Return zeroes instead of None for initialization
+        return np.zeros(10)
     
     # Get the position of our agent
     agent_position = game_state['self'][3]
