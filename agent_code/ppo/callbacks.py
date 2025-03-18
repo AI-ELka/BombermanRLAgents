@@ -37,7 +37,7 @@ def setup(self):
     self.MAX_COORD_HISTORY = 7
     HIDDEN_SIZE = 512
     NETWORK_TYPE = 'MLP'
-    PRETRAINED_MODEL = "useful/ppo.pt"
+    PRETRAINED_MODEL = "ppo.pt"
     self.MODEL_NAME = "ppo"
     self.SAVE_ROUNDS = []
 
