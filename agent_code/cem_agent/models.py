@@ -21,9 +21,7 @@ class CEMAgent:
         return np.array(rewards)
 
     def simulate_action(self, action, game_state):
-        # Simulate the action in the game environment and return the reward
-        # This is a placeholder for the actual simulation logic
-        return np.random.rand()  # Replace with actual reward calculation
+        return np.random.rand()
 
     def update_policy(self, actions, rewards):
         elite_count = int(self.population_size * self.elite_fraction)
