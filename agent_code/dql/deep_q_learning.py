@@ -5,6 +5,7 @@ from typing import Callable
 import events as e
 import agent_code.dql.own_events as own_e
 from agent_code.dql.utils import *
+from agent_code.dql.replay_buffer import ReplayBuffer
 
 import torch
 
@@ -123,7 +124,10 @@ class DeepQLearningAgent:
                min_epsilon: float = 0.05,
                max_epsilon: float = 0.3,
                decay_rate: float = 0.0001,
-               learning_rate: float = 0.004):
+               learning_rate: float = 0.004,
+               batch_size: int = 128,
+               replay_buffer_capacity: int = 1000,
+               pretrained_model_path: str = None):
     self.logger = logger
     self.device = device
 
@@ -134,6 +138,8 @@ class DeepQLearningAgent:
     self.max_epsilon = max_epsilon
     self.decay_rate = decay_rate
 
+    self.batch_size = batch_size
+
     self.q_network = QNetwork(
       n_observations=20, # features vector has shape (20, )
       n_actions=len(ACTIONS),
@@ -143,6 +149,12 @@ class DeepQLearningAgent:
 
     self.optimizer = torch.optim.Adam(self.q_network.parameters(), lr=learning_rate)
     self.lr_scheduler = MinimumExponentialLR(self.optimizer, lr_decay=0.97, min_lr=0.0001)
+
+    self.replay_buffer = ReplayBuffer(replay_buffer_capacity)
+
+    if pretrained_model_path is not None:
+      self.logger.debug(f"Using pretrained model at {pretrained_model_path}")
+      self.q_network = torch.load(pretrained_model_path, weights_only=False)
 
   def act(self,
           feature_vector: list[int],
@@ -190,40 +202,41 @@ class DeepQLearningAgent:
                      action_idx: int,
                      reward: float,
                      new_state: list[int]):
-    done = 1 if new_state is None else 0
+    # done = 1 if new_state is None else 0
+    if len(self.replay_buffer) > self.batch_size:
+      batch_states, batch_actions, batch_rewards, batch_next_states, batch_dones = self.replay_buffer.sample(self.batch_size)
 
-    with torch.no_grad():
-      # Convert the next_state to a PyTorch tensor and add a batch dimension (unsqueeze)
-      if not done:
-        next_state_tensor = torch.tensor(new_state, dtype=torch.float32, device=self.device).unsqueeze(0)
-      else:
-        # all 0s, doesn't matter
-        next_state_tensor = torch.zeros((1, len(state)), dtype=torch.float32, device=self.device)
+      # Convert to PyTorch tensors
+      batch_states_tensor = torch.tensor(batch_states, dtype=torch.float32, device=self.device)
+      batch_actions = [ACTIONS.index(action) for action in batch_actions]
+      batch_actions_tensor = torch.tensor(batch_actions, dtype=torch.long, device=self.device)
+      batch_rewards_tensor = torch.tensor(batch_rewards, dtype=torch.float32, device=self.device)
+      batch_next_states_tensor = torch.tensor(batch_next_states, dtype=torch.float32, device=self.device)
+      batch_dones_tensor = torch.tensor(batch_dones, dtype=torch.float32, device=self.device)
 
-      # Compute the **target** Q-value
-      target  = torch.tensor(reward, device=self.device, dtype=torch.float32)
-      target += torch.tensor(self.gamma * (1 - done), dtype=torch.float32) * self.q_network(next_state_tensor).squeeze(0).max()
+      # Compute the target Q values for the batch
+      with torch.no_grad():
+        # Compute the maximum Q-values for the next states
+        next_state_q_values = self.q_network(batch_next_states_tensor) # dim 0 = batch
+        best_action_index = next_state_q_values.argmax(dim=1)
 
-    # Convert the state to a PyTorch tensor and add a batch dimension (unsqueeze)
-    state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
+        targets = batch_rewards_tensor \
+          + self.gamma * (1 - batch_dones_tensor) * next_state_q_values.gather(1, best_action_index.unsqueeze(1)).squeeze(1)
 
-    # Compute the Q-values for the current state using the Q-network
-    q_values = self.q_network(state_tensor)
+      current_q_values = self.q_network(batch_states_tensor).gather(1, batch_actions_tensor.unsqueeze(1))
 
-    # Get the Q-value of the current action
-    q_value_of_current_action = q_values.squeeze(0)[action_idx]
-    
-    # Loss & backprop.
-    loss = self.loss_fn(q_value_of_current_action, target)
+      # Loss & backprop.
+      loss = self.loss_fn(current_q_values.squeeze(1), targets)
 
-    self.optimizer.zero_grad()
-    loss.backward()
-    self.optimizer.step()
+      self.optimizer.zero_grad()
+      loss.backward()
+      self.optimizer.step()
 
-    self.lr_scheduler.step()
+      self.lr_scheduler.step()
 
-    if self.logger:
-      self.logger.debug(f"Updated Action {action_idx}")
+      if self.logger:
+        # self.logger.debug(f"Updated Action {action_idx}")
+        self.logger.debug(f"Updated Actions through replay buffer")
 
   def training_step(self,
                     state: list[int],
@@ -231,9 +244,10 @@ class DeepQLearningAgent:
                     reward: float,
                     new_state: list[int]):
     action_idx = ACTIONS.index(action)
+    self.replay_buffer.add(state, action, float(reward), [0,] * len(state) if new_state is None else new_state, new_state is None)
     self.update_q_value(state, action_idx, reward, new_state)
 
-  def save(self, model_name="dqn.pth"):
+  def save(self, model_name="dqn"):
     model_path = os.path.join('./models', model_name)
     torch.save(self.q_network, model_path)
     if self.logger:

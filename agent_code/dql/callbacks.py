@@ -8,6 +8,8 @@ in the classic setting with 3 rule based agents as opponents
 """
 from collections import deque
 
+import torch
+
 from agent_code.dql.feature_extraction import state_to_small_features
 from agent_code.dql.deep_q_learning import DeepQLearningAgent
 
@@ -34,8 +36,10 @@ def setup(self):
   self.agent_coord_history = deque([], self.MAX_COORD_HISTORY)
 
   pretrained_model = self.MODEL_NAME
-
-  self.agent = DeepQLearningAgent(logger = self.logger, device = "cpu")
+  self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  self.agent = DeepQLearningAgent(logger = self.logger,
+                                  device = self.device,)
+                                #   pretrained_model_path="models/" + self.MODEL_NAME)
 
 def reset_self(self, game_state: dict):
     self.agent_coord_history = deque([], self.MAX_COORD_HISTORY)
