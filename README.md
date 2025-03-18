@@ -53,6 +53,12 @@ If a trainable agent does not include `train.py`, an exception will be raised.
 - **Location:** `agent_code/ql`
 - **Description:** QL_Agent serves as a comparative baseline, utilizing tabular Q-learning to make decisions based on a learned value function.
 
+### 🔹 Deep-QL
+- **Algorithm:** DQL
+- **Status:** Stable performance
+- **Location:** `agent_code/dql` & ``agent_code/dql_large``
+- **Description:** MLP
+
 
 ## How to Run the Agents
 
